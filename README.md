@@ -1,9 +1,3 @@
-  ____ _   _    _    __  __ _____   ____                            
- / ___| \ | |  / \  |  \/  | ____| |  _ \ ___  __ _ _ __   ___ _ __ 
-| |   |  \| | / _ \ | |\/| |  _|   | |_) / _ \/ _` | '_ \ / _ \ '__|
-| |___| |\  |/ ___ \| |  | | |___  |  _ <  __/ (_| | |_) |  __/ |   
- \____|_| \_/_/   \_\_|  |_|_____| |_| \_\___|\__,_| .__/ \___|_|   
-                                                   |_|    
 # ☠️ CNAME Reaper — Reaping Dead DNS Records ⚔️
 
 CNAME Reaper is a command-line tool designed to detect **dangling DNS records** and potential **subdomain takeover vulnerabilities**. It helps identify misconfigured or unclaimed cloud-based subdomain records that could be exploited by attackers.
