@@ -326,7 +326,7 @@ def main():
 	    
     # Write output files as requested
     if args.text or args.output_all:
-        with open('output.txt', 'w') as f:
+        with open('reaper-output.txt', 'w') as f:
             for p in results:
                 if p == 'Safe' and not args.incl_safe:
                     continue  # Skip Safe section unless --incl-safe is used
@@ -337,7 +337,7 @@ def main():
                     print(f"{entry['subdomain']} -> {entry['cname']} -> {entry['reason']}")
 
     if args.csv or args.output_all:
-        with open('output.csv', 'w', newline='') as f:
+        with open('reaper-output.csv', 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=['Subdomain', 'CNAME', 'Provider', 'Status', 'Reason'])
             writer.writeheader()
             for provider_group in results.values():
@@ -351,7 +351,7 @@ def main():
                     })
 
     if args.json or args.output_all:
-        with open('output.json', 'w') as f:
+        with open('reaper-output.json', 'w') as f:
             json.dump(results, f, indent=2)
 
 if __name__ == "__main__":
