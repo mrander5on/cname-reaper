@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output files
+output.txt
+output.csv
+output.json
+
+# Environment files
+.env
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# macOS
+.DS_Store
+
+# VSCode project settings
+.vscode/
+
+# PyCharm project settings
+.idea/
+
+# Logs
+*.log
+
+# System files
+Thumbs.db
