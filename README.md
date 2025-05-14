@@ -21,7 +21,7 @@ Dangling DNS records occur when a subdomain points to an external service (via a
 - ✅ Detects unclaimed CNAME targets
 - ✅ Uses banner grabbing to verify unconfigured service pages
 - ✅ Supports single domain or list input
-- ✅ Auto-enumerates subdomains via [crt.sh](https://crt.sh)
+- ✅ Auto-enumerates subdomains via crt.sh
 - ✅ Categorizes by provider (AWS, Azure, Google, etc.)
 - ✅ Outputs to screen, `.txt`, `.csv`, and `.json`
 
@@ -93,8 +93,8 @@ Read the full release announcement here: [Coming Soon](#)
 
 ## 🙏 Acknowledgments
 
-- Sprocket Security (sprocketsecurity.com)
-- crt.sh for certificate-based subdomain enumeration
+- Sprocket Security ([sprocketsecurity.com](https://sprocketsecurity.com))
+- [crt.sh](https://crt.sh) for certificate-based subdomain enumeration
 
 
 ---
