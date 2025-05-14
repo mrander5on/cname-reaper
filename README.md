@@ -44,7 +44,7 @@ chmod +x cname_reaper.py
 ./cname_reaper.py -sl subdomains.txt --incl-safe -oa
 ```
 
-### 🔧 Flags
+### 🚩 Flags
 
 | Flag                 | Description                                     |
 |----------------------|-------------------------------------------------|
@@ -60,7 +60,7 @@ chmod +x cname_reaper.py
 
 ---
 
-## 🧪 Example Output
+## 📃 Example Output
 
 ```bash
 === Potentially Vulnerable Subdomains ===
@@ -105,6 +105,6 @@ This tool is for educational and authorized security testing purposes only. Use 
 
 ---
 
-## 📄 License
+## § License
 
 MIT License
