@@ -36,6 +36,7 @@ Dangling DNS records occur when a subdomain points to an external service (via a
 git clone https://github.com/mrander5on/cname-reaper.git
 cd cname-reaper
 chmod +x cname_reaper.py
+pip install -r requirements.txt
 ```
 
 ---
