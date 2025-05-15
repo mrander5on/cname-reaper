@@ -23,9 +23,9 @@ Dangling DNS records occur when a subdomain points to an external service (via a
 
 - ✅ Detects unclaimed CNAME targets
 - ✅ Uses banner grabbing to verify unconfigured service pages
-- ✅ Supports single domain or list input
+- ✅ Supports single domain or list input for bulk detections
 - ✅ Auto-enumerates subdomains via crt.sh
-- ✅ Categorizes by provider (AWS, Azure, Google, etc.)
+- ✅ Categorizes results by hosting provider (AWS, Azure, Google, etc.)
 - ✅ Outputs to screen, `.txt`, `.csv`, and `.json`
 
 ---
@@ -69,22 +69,22 @@ chmod +x cname_reaper.py
 === Potentially Vulnerable Subdomains ===
 
 --- Azure ---
-shop.example.com -> shop.azurewebsites.net
+shop.example.com -> shop.azurewebsites.net -> NXDOMAIN
 
 --- GitHub Pages ---
-blog.example.com -> user.github.io
+blog.example.com -> user.github.io -> Misconfigurred Page
 
 === Safe Subdomains ===
-www.example.com -> active-host.net
+www.example.com -> active-host.net -> No CNAME
 ```
 
 In CSV/JSON output, each entry includes:
 
 - `Subdomain`
 - `CNAME`
-- `Provider` (or `"None"` if no CNAME)
+- `Provider`
 - `Status` ("Vulnerable" or "Safe")
-- `Reason` ("NXDOMAIN" or "Banner"")
+- `Reason` ("NXDOMAIN", "Misconfigured Page", "Resolved" or "No CNAME")
 
 ---
 
