@@ -15,38 +15,42 @@ ASCII_ART = r"""
 # -----------------------------
 # CNAME Reaper: A Dangling DNS Detection Tool
 # -----------------------------
-# Detects dangling DNS records that are potentially vulnerable 
+# This tool detects dangling DNS records that are potentially vulnerable 
 # to hijacking/takeover through subdomain enumeration, DNS lookups, 
 # and banner-grabbing.
 # 
-# Acceptable inputs including single entry or lists of apex and subdomains.
+# It supports various input methods, including single entries or lists of 
+# apex domains and subdomains.
 #
-# Results are grouped by provider: Azure, AWS, Google, etc. Outputs include
-# screen, text, csv, and JSON.
+# Results are grouped by hosting provider (e.g., Azure, AWS, Google, etc.) 
+# and can be output to the screen, text, CSV, or JSON files.
 # -----------------------------
 
 # -----------------------------
 # Imports
 # -----------------------------
-
 import argparse
 import subprocess
 import socket
 import json
 import csv
 import os
-import time
 import re
-import shlex  # Import shlex for parsing quoted strings
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # -----------------------------
 # Argument Parsing
 # -----------------------------
 class CustomHelpParser(argparse.ArgumentParser):
+    """
+    Custom argument parser to display ASCII art along with the help message.
+    """
     def print_help(self, file=None):
         print(ASCII_ART)
         super().print_help(file)
 
+# Define command-line arguments
 parser = CustomHelpParser(description='CNAME Reaper: A Dangling DNS Detection Tool')
 parser.add_argument('-d', '--domain', help='Single apex domain')
 parser.add_argument('-dl', '--domain-list', help='File with apex domains')
@@ -64,15 +68,19 @@ args = parser.parse_args()
 # -----------------------------
 
 def load_subdomains():
-    # Loads subdomains from various input methods:
-    # 1. Single subdomain
-    # 2. Subdomain list file
-    # 3. Single apex domain via crt.sh
-    # 4. Apex domain list via crt.sh
+    """
+    Loads subdomains from various input methods:
+    1. Single subdomain provided via the `-s` argument.
+    2. File containing a list of subdomains provided via the `-sl` argument.
+    3. Single apex domain (enumerates subdomains using crt.sh) via the `-d` argument.
+    4. File containing a list of apex domains (enumerates subdomains for each) via the `-dl` argument.
 
+    Returns:
+        list: A list of unique subdomains.
+    """
     subdomains = set()
 
-    # Option 1: Single subdomain (direct use)
+    # Option 1: Single subdomain
     if args.subdomain:
         subdomains.add(args.subdomain.strip())
 
@@ -100,73 +108,82 @@ def load_subdomains():
 
 
 def query_crtsh(domain):
-    # Queries crt.sh for subdomains related to the given apex domain
+    """
+    Queries crt.sh for subdomains of a given apex domain.
+
+    Args:
+        domain (str): The apex domain to query.
+
+    Returns:
+        set: A set of subdomains found via crt.sh.
+    """
     try:
-        # Add user-agent header to avoid silent blocking
         response = subprocess.check_output([
             'curl', '-s', '-A', 'Mozilla/5.0',
             f'https://crt.sh/?q=%25.{domain}&output=json'
         ], timeout=15)
 
-        # Validate response before parsing
         if not response or not response.strip().startswith(b'['):
             raise ValueError("Invalid or empty JSON response")
 
-        import json as jsonlib
-        entries = jsonlib.loads(response.decode())
-
-        found = set()
-        for entry in entries:
-            names = entry.get('name_value', '')
-            for name in names.split('\n'):
-                if domain in name:
-                    cleaned = name.strip().lstrip('*.').lower()
-                    if cleaned:
-                        found.add(cleaned)
-        return found
-
+        entries = json.loads(response.decode())
+        return {name.strip().lstrip('*.').lower()
+                for entry in entries
+                for name in entry.get('name_value', '').split('\n')
+                if domain in name}
     except Exception as e:
         print(f"Warning: Failed to fetch from crt.sh for {domain}: {e}")
         return set()
 
+
 def get_cname(subdomain):
+    """
+    Retrieves the CNAME record for a given subdomain using the `dig` command.
+
+    Args:
+        subdomain (str): The subdomain to query.
+
+    Returns:
+        str: The CNAME record or an error message (e.g., "No CNAME", "Timeout").
+    """
     try:
-        # Use '+short' to simplify the output to just the CNAME target
         result = subprocess.run(['dig', subdomain, 'CNAME', '+short'], capture_output=True, text=True, timeout=5)
         output = result.stdout.strip()
-
-        # If the output is empty, there is no CNAME
         if not output:
             return "No CNAME"
-
-        # Return the CNAME target (last line of the output)
         return output.split('\n')[-1].rstrip('.')
     except subprocess.TimeoutExpired:
         return "Timeout"
     except Exception as e:
         return "Error"
-    
-def get_cname_status(subdomain):
-    try:
-        result = subprocess.run(['dig', subdomain], capture_output=True, text=True, timeout=5)
-        output = result.stdout
-        return "status: NXDOMAIN" in output
-    except subprocess.TimeoutExpired:
-        return False
+
 
 def cname_resolves(cname):
-    # Checks if the CNAME target resolves to an IP
+    """
+    Checks if a CNAME resolves to an IP address.
+
+    Args:
+        cname (str): The CNAME to resolve.
+
+    Returns:
+        bool: True if the CNAME resolves, False otherwise.
+    """
     try:
         socket.gethostbyname(cname.strip('.'))
         return True
     except socket.gaierror:
         return False
 
+
 def load_hosting_signatures(file_path='hosting_sigs.txt'):
     """
     Loads hosting provider signatures from a file.
-    The file should have the format:
-    provider_name:"signature1","signature2","signature3"
+
+    Args:
+        file_path (str): Path to the hosting signatures file.
+
+    Returns:
+        dict: A dictionary mapping provider names to their signatures.
     """
     signatures = {}
     try:
@@ -175,10 +192,6 @@ def load_hosting_signatures(file_path='hosting_sigs.txt'):
                 line = line.strip()
                 if line and ':' in line:
                     provider, sigs = line.split(':', 1)
-                    # Remove surrounding quotes from the entire string
-                    if sigs.startswith('"') and sigs.endswith('"'):
-                        sigs = sigs[1:-1]
-                    # Split the signatures and strip quotes from each one
                     signatures[provider.strip()] = [sig.strip().strip('"') for sig in sigs.split(',')]
     except FileNotFoundError:
         print(f"Error: Hosting signatures file '{file_path}' not found.")
@@ -186,9 +199,17 @@ def load_hosting_signatures(file_path='hosting_sigs.txt'):
         print(f"Error: Failed to load hosting signatures: {e}")
     return signatures
 
+
 def get_hosting_provider(cname, signatures):
     """
     Determines the hosting provider based on the CNAME and loaded signatures.
+
+    Args:
+        cname (str): The CNAME to check.
+        signatures (dict): Hosting provider signatures.
+
+    Returns:
+        str: The hosting provider name or 'Other' if not found.
     """
     cname = cname.lower()
     for provider, sigs in signatures.items():
@@ -196,8 +217,17 @@ def get_hosting_provider(cname, signatures):
             return provider
     return 'Other'
 
+
 def curl_banner(subdomain):
-    # Uses curl to grab the HTTP response content from the subdomain
+    """
+    Uses curl to grab the HTTP response content from the subdomain.
+
+    Args:
+        subdomain (str): The subdomain to query.
+
+    Returns:
+        str: The HTTP response content.
+    """
     try:
         output = subprocess.check_output(['curl', '-s', f'http://{subdomain}'], stderr=subprocess.STDOUT, timeout=5)
         return output.decode(errors='ignore')
@@ -206,10 +236,16 @@ def curl_banner(subdomain):
     except:
         return ''
 
+
 def load_error_signatures(file_path='error_sigs.txt'):
     """
     Loads error signatures from a file.
-    The file should contain one quoted error signature per line.
+
+    Args:
+        file_path (str): Path to the error signatures file.
+
+    Returns:
+        list: A list of error signatures.
     """
     error_signatures = []
     try:
@@ -225,22 +261,119 @@ def load_error_signatures(file_path='error_sigs.txt'):
         print(f"Error: Error signatures file '{file_path}' not found.")
     return error_signatures
 
+
 def is_misconfigured_page(banner, error_signatures):
     """
     Checks if the banner contains any known error signatures.
+
+    Args:
+        banner (str): The HTTP response content.
+        error_signatures (list): Known error signatures.
+
+    Returns:
+        bool: True if a known error signature is found, False otherwise.
     """
     banner = banner.lower()
     return any(signature in banner for signature in error_signatures)
 
-def print_progress(index, total):
-    # Displays a progress bar in the terminal
-    percent = int((index + 1) / total * 100)
-    bar = '=' * (percent // 2) + '-' * (50 - percent // 2)
-    print(f"\r[{bar}] {percent}%", end='')
+def write_output_file(file_type, results, file_name):
+    """
+    Writes the analysis results to a file.
 
-# -----------------------------
-# Main Logic
-# -----------------------------
+    Args:
+        file_type (str): The type of file to write (e.g., 'text', 'csv', 'json').
+        results (dict): The analysis results.
+        file_name (str): The name of the output file.
+    """
+    if file_type == 'text':
+        with open(file_name, 'w') as f:
+            for provider, entries in results.items():
+                if provider == 'Safe' and not args.incl_safe:
+                    continue
+                if not entries:
+                    continue
+                f.write(f"\n--- {provider} ---\n")
+                for entry in entries:
+                    f.write(f"{entry['subdomain']} -> {entry['cname']} -> {entry['reason']}\n")
+    elif file_type == 'csv':
+        with open(file_name, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['Subdomain', 'CNAME', 'Provider', 'Status', 'Reason'])
+            writer.writeheader()
+            for provider, entries in results.items():
+                for entry in entries:
+                    writer.writerow({
+                        'Subdomain': entry['subdomain'],
+                        'CNAME': entry['cname'],
+                        'Provider': entry['provider'],
+                        'Status': entry['status'],
+                        'Reason': entry['reason']
+                    })
+    elif file_type == 'json':
+        with open(file_name, 'w') as f:
+            json.dump(results, f, indent=2)
+
+
+def analyze_subdomain(sub, hosting_signatures, error_signatures):
+    """
+    Analyzes a single subdomain for vulnerabilities.
+
+    Args:
+        sub (str): The subdomain to analyze.
+        hosting_signatures (dict): Hosting provider signatures.
+        error_signatures (list): Known error signatures.
+
+    Returns:
+        dict: Analysis result for the subdomain, or None if safe and not included.
+    """
+    cname = get_cname(sub)
+
+    # Case 1: No CNAME at all
+    if cname == "No CNAME":
+        if args.incl_safe:
+            return {
+                'subdomain': sub,
+                'cname': cname,
+                'provider': 'None',
+                'status': 'Safe',
+                'reason': 'No CNAME'
+            }
+        return None
+
+    # Determine the hosting provider
+    provider = get_hosting_provider(cname, hosting_signatures)
+
+    # Case 2: CNAME resolves (check for misconfigured page)
+    if cname_resolves(cname):
+        banner = curl_banner(sub)
+        if is_misconfigured_page(banner, error_signatures):
+            return {
+                'subdomain': sub,
+                'cname': cname,
+                'provider': provider,
+                'status': 'Vulnerable',
+                'reason': 'Misconfigured Page'
+            }
+        elif args.incl_safe:
+            return {
+                'subdomain': sub,
+                'cname': cname,
+                'provider': provider,
+                'status': 'Safe',
+                'reason': 'Resolved'
+            }
+    else:
+        # Case 3: CNAME exists but doesn't resolve — NXDOMAIN
+        return {
+            'subdomain': sub,
+            'cname': cname,
+            'provider': provider,
+            'status': 'Vulnerable',
+            'reason': 'NXDOMAIN'
+        }
+
+    return None
+
+
 def main():
     print(ASCII_ART)
     
@@ -257,55 +390,24 @@ def main():
     results['Other'] = []  # Add "Other" category
     results['Safe'] = []   # Add "Safe" category
 
-    # Analyze each subdomain
-    for idx, sub in enumerate(subdomains):
-        print_progress(idx, total)
-        cname = get_cname(sub)
+    # Use ThreadPoolExecutor for parallel analysis with tqdm for progress tracking
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {
+            executor.submit(analyze_subdomain, sub, hosting_signatures, error_signatures): sub
+            for sub in subdomains
+        }
 
-        # Case 1: No CNAME at all
-        if cname == "No CNAME":
-            if args.incl_safe:
-                results['Safe'].append({
-                    'subdomain': sub,
-                    'cname': cname,
-                    'provider': 'None',
-                    'status': 'Safe',
-                    'reason': 'No CNAME'
-                })
-            continue
-
-        # Determine the hosting provider
-        provider = get_hosting_provider(cname, hosting_signatures)
-
-        # Case 2: CNAME resolves (check for misconfigured page)
-        if cname_resolves(cname):
-            banner = curl_banner(sub)
-            if is_misconfigured_page(banner, error_signatures):
-                results[provider].append({
-                    'subdomain': sub,
-                    'cname': cname,
-                    'provider': provider,
-                    'status': 'Vulnerable',
-                    'reason': 'Misconfigured Page'
-                })
-            else:
-                if args.incl_safe:
-                    results['Safe'].append({
-                        'subdomain': sub,
-                        'cname': cname,
-                        'provider': provider,
-                        'status': 'Safe',
-                        'reason': 'Resolved'
-                    })
-        else:
-            # Case 3: CNAME exists but doesn't resolve — NXDOMAIN
-            results[provider].append({
-                'subdomain': sub,
-                'cname': cname,
-                'provider': provider,
-                'status': 'Vulnerable',
-                'reason': 'NXDOMAIN'
-            })
+        # Use tqdm to track progress
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Analyzing Subdomains"):
+            try:
+                result = future.result()
+                if result:
+                    provider = result['provider']
+                    if provider not in results:
+                        provider = 'Other'
+                    results[provider].append(result)
+            except Exception as e:
+                print(f"Error analyzing subdomain: {e}")
 
     # Display results
     print("\n\n=== Potentially Vulnerable Subdomains ===\n")
@@ -331,33 +433,14 @@ def main():
     
     # Write output files as requested
     if args.text or args.output_all:
-        with open('reaper-output.txt', 'w') as f:
-            for provider, entries in results.items():
-                if provider == 'Safe' and not args.incl_safe:
-                    continue  # Skip Safe section unless --incl-safe is used
-                if not entries:
-                    continue
-                f.write(f"\n--- {provider} ---\n")
-                for entry in entries:
-                    f.write(f"{entry['subdomain']} -> {entry['cname']} -> {entry['reason']}\n")
+        write_output_file('text', results, 'reaper-output.txt')
 
     if args.csv or args.output_all:
-        with open('reaper-output.csv', 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=['Subdomain', 'CNAME', 'Provider', 'Status', 'Reason'])
-            writer.writeheader()
-            for provider, entries in results.items():
-                for entry in entries:
-                    writer.writerow({
-                        'Subdomain': entry['subdomain'],
-                        'CNAME': entry['cname'],
-                        'Provider': entry['provider'],
-                        'Status': entry['status'],
-                        'Reason': entry['reason']
-                    })
+        write_output_file('csv', results, 'reaper-output.csv')
 
     if args.json or args.output_all:
-        with open('reaper-output.json', 'w') as f:
-            json.dump(results, f, indent=2)
+        write_output_file('json', results, 'reaper-output.json')
+
 
 if __name__ == "__main__":
     main()
