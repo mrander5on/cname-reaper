@@ -4,7 +4,7 @@
 
 ## DNS Sentinel - 🕶 "There is no subdomain." 🕶
 
-CDNS Sentinel is a command-line tool designed to detect **dangling DNS records** and potential **subdomain takeover vulnerabilities**. It helps identify misconfigured or unclaimed cloud-based subdomain records that could be exploited by attackers.
+DNS Sentinel is a command-line tool designed to detect **dangling DNS records** and potential **subdomain takeover vulnerabilities**. It helps identify misconfigured or unclaimed cloud-based subdomain records that could be exploited by attackers.
 
 ---
 
