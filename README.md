@@ -1,5 +1,6 @@
 
-![ascii-text-art](https://github.com/user-attachments/assets/58a9015e-2a5f-4b11-a950-edf4b2fad06a)
+![dns-sentinel_ascii](https://github.com/user-attachments/assets/40d09c49-e895-4483-8d40-91133e3e79de)
+
 
 ## DNS Sentinel - 🕶 "There is no subdomain." 🕶
 
