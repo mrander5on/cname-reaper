@@ -1,14 +1,14 @@
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files.
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Output files
+# Output files.
 output.txt
 output.csv
 output.json
 
-# Environment files
+# Environment files.
 .env
 .venv/
 venv/
@@ -16,17 +16,17 @@ ENV/
 env.bak/
 venv.bak/
 
-# macOS
+# macOS.
 .DS_Store
 
-# VSCode project settings
+# VSCode project settings.
 .vscode/
 
-# PyCharm project settings
+# PyCharm project settings.
 .idea/
 
-# Logs
+# Logs.
 *.log
 
-# System files
+# System files.
 Thumbs.db
