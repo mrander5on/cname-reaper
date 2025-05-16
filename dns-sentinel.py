@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 
 ASCII_ART = r"""
-  ____ _   _    _    __  __ _____   ____                            
- / ___| \ | |  / \  |  \/  | ____| |  _ \ ___  __ _ _ __   ___ _ __ 
-| |   |  \| | / _ \ | |\/| |  _|   | |_) / _ \/ _` | '_ \ / _ \ '__|
-| |___| |\  |/ ___ \| |  | | |___  |  _ <  __/ (_| | |_) |  __/ |   
- \____|_| \_/_/   \_\_|  |_|_____| |_| \_\___|\__,_| .__/ \___|_|   
-                                                   |_|                          
+___  _  _ ____    ____ ____ _  _ ___ _ _  _ ____ _   
+|  \ |\ | [__     [__  |___ |\ |  |  | |\ | |___ |   
+|__/ | \| ___]    ___] |___ | \|  |  | | \| |___ |___
 
-                 ☠️  Reaping Dead DNS Records ⚔️
+            🕶 "There is no subdomain." 🕶
              
 """
 
 # -----------------------------
-# CNAME Reaper: A Dangling DNS Detection Tool
+# DNS Sentinel: Hunt and Eliminate DNS Vulnerabilities
 # -----------------------------
 # This tool detects dangling DNS records that are potentially vulnerable 
 # to hijacking/takeover through subdomain enumeration, DNS lookups, 
@@ -433,13 +430,13 @@ def main():
     
     # Write output files as requested
     if args.text or args.output_all:
-        write_output_file('text', results, 'reaper-output.txt')
+        write_output_file('text', results, 'sentinel-output.txt')
 
     if args.csv or args.output_all:
-        write_output_file('csv', results, 'reaper-output.csv')
+        write_output_file('csv', results, 'sentinel-output.csv')
 
     if args.json or args.output_all:
-        write_output_file('json', results, 'reaper-output.json')
+        write_output_file('json', results, 'sentinel-output.json')
 
 
 if __name__ == "__main__":

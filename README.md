@@ -1,9 +1,9 @@
 
 ![ascii-text-art](https://github.com/user-attachments/assets/58a9015e-2a5f-4b11-a950-edf4b2fad06a)
 
-# ☠️ CNAME Reaper — Reaping Dead DNS Records ⚔️
+## DNS Sentinel - 🕶 "There is no subdomain." 🕶
 
-CNAME Reaper is a command-line tool designed to detect **dangling DNS records** and potential **subdomain takeover vulnerabilities**. It helps identify misconfigured or unclaimed cloud-based subdomain records that could be exploited by attackers.
+CDNS Sentinel is a command-line tool designed to detect **dangling DNS records** and potential **subdomain takeover vulnerabilities**. It helps identify misconfigured or unclaimed cloud-based subdomain records that could be exploited by attackers.
 
 ---
 
@@ -33,9 +33,9 @@ Dangling DNS records occur when a subdomain points to an external service (via a
 ## 🚀 Installation
 
 ```bash
-git clone https://github.com/mrander5on/cname-reaper.git
-cd cname-reaper
-chmod +x cname_reaper.py
+git clone https://github.com/mrander5on/dns-sentinel.git
+cd dns-sentinel
+chmod +x dns-sentinel.py
 pip install -r requirements.txt
 ```
 
@@ -44,8 +44,8 @@ pip install -r requirements.txt
 ## ⚙️ Usage
 
 ```bash
-./cname_reaper.py -d example.com
-./cname_reaper.py -sl subdomains.txt --incl-safe -oa
+./dns-sentinel.py -d example.com
+./dns-sentinel.py -sl subdomains.txt --incl-safe -oa
 ```
 
 ### 🚩 Flags
